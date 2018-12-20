@@ -1,5 +1,5 @@
 # MiFitExport
-Export Mi Fit data (not all data) to a json file.
+Export Mi Fit data (steps not inlcuded both on step and sleep data) to a json file.
 
 # Limitation
 Works only on Rooted device.
