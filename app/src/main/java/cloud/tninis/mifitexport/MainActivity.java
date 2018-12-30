@@ -1,10 +1,12 @@
 package cloud.tninis.mifitexport;
 
+import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
@@ -14,6 +16,9 @@ import android.text.BoringLayout;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.DatePicker;
+import android.widget.EditText;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,7 +31,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
@@ -38,6 +45,9 @@ public class MainActivity extends AppCompatActivity {
     Button exportBtn;
     String folder;
     TextView infoTextView;
+    EditText dateTo;
+    EditText dateFrom;
+    RadioGroup radioGroup;
     private static DecimalFormat df = new DecimalFormat(".#");
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,12 +55,53 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         folder=Environment.getExternalStorageDirectory()+"/Android/data/"+getResources().getString(R.string.AppFolder);
         exportBtn=(Button)findViewById(R.id.btnExport);
+        radioGroup=(RadioGroup)findViewById(R.id.radioGroup) ;
         infoTextView=(TextView)findViewById(R.id.exportInfo);
+        dateFrom=(EditText)findViewById(R.id.date_from);
+        dateTo=(EditText)findViewById(R.id.date_to);
+        EnableDisableDates(false);
         exportBtn.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 ActivityCompat.requestPermissions(MainActivity.this,new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE},1);
             }
         });
+
+
+
+        dateFrom.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                showSetDate(dateFrom);
+            }
+        });
+
+        dateTo.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                showSetDate(dateTo);
+
+            }
+        });
+        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener()
+        {
+
+            public void onCheckedChanged(RadioGroup group, int checkedId)
+            {
+                switch(checkedId)
+                {
+                    case R.id.all_dates:
+                        EnableDisableDates(false);
+
+                        break;
+                    case R.id.specif_dates:
+                        EnableDisableDates(true);
+                        break;
+                }
+            }
+        });
+
     }
 
 
@@ -77,9 +128,6 @@ public class MainActivity extends AppCompatActivity {
     private class Startup extends AsyncTask<Void, Void, Void> {
         private ProgressDialog dialog = null;
         private Context context = null;
-        private boolean suAvailable = false;
-        private String suVersion = null;
-        private String suVersionInternal = null;
         private List<String> suResult = null;
         private Boolean exportResult=false;
 
@@ -100,9 +148,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected Void doInBackground(Void... params) {
-            // Let's do some SU stuff
-            suAvailable = Shell.SU.available();
-            if (suAvailable) {
+            if (Shell.SU.available()) {
                 suResult = Shell.SU.run(new String[] {
                         "cd "+ getResources().getString(R.string.MiFitDatabaseFolder),
                         "find -name \"*origin*\" -not -name \"*journal\" -exec cp {} "+folder+" \\;"
@@ -171,7 +217,6 @@ public class MainActivity extends AppCompatActivity {
 
     public boolean ExportToJson(){
 
-
         if(GetDatabasePath()!=null) {
             try
             {
@@ -180,13 +225,10 @@ public class MainActivity extends AppCompatActivity {
                 String Name="";
                 int Height=0;
                 double Weight=0;
-                //SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy'T'HH:mm:ss");
                 SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy'T'HH:mm:ssZ");
                 TimeZone tes=TimeZone.getDefault();
                 sdf.setTimeZone(tes);
                 String exportDate = sdf.format(new Date());
-
-
 
                 cursor  = db.rawQuery("Select NAME,HEIGHT,WEIGHT from USER_INFOS ", null);
                 cursor.moveToFirst();
@@ -219,12 +261,12 @@ public class MainActivity extends AppCompatActivity {
             }
             catch(JSONException ex)
             {
-                Log.e("MiFitExport", "exception", ex);
+                Log.e("MiFitExport", "JSONException", ex);
                 return false;
             }
             catch(Exception ex)
             {
-                Log.e("MiFitExport", "exception", ex);
+                Log.e("MiFitExport", "Exception", ex);
                 return false;
             }
 
@@ -241,6 +283,66 @@ public class MainActivity extends AppCompatActivity {
         }
         catch (IOException ex) {
             Log.e("MiFitExport", "exception", ex);
+        }
+    }
+
+    private void EnableDisableDates(Boolean mode)
+    {
+        if(mode)
+        {
+            dateTo.setEnabled(true);
+            dateTo.setBackground(getDrawable(R.drawable.rect_btn));
+
+            dateFrom.setEnabled(true);
+            dateFrom.setBackground(getDrawable(R.drawable.rect_btn));
+        }
+        else
+        {
+            dateTo.setText("");
+            dateTo.setEnabled(false);
+            dateTo.setBackground(getDrawable(R.drawable.rect_btn_disable));
+
+            dateFrom.setText("");
+            dateFrom.setEnabled(false);
+            dateFrom.setBackground(getDrawable(R.drawable.rect_btn_disable));
+        }
+
+    }
+
+    private void showSetDate(final EditText dateText)
+    {
+        Calendar mcurrentDate=Calendar.getInstance();
+        int year=mcurrentDate.get(Calendar.YEAR);
+        int month=mcurrentDate.get(Calendar.MONTH);
+        int day=mcurrentDate.get(Calendar.DAY_OF_MONTH);
+
+        final DatePickerDialog mDatePicker =new DatePickerDialog(this,R.style.DialogTheme, new DatePickerDialog.OnDateSetListener()
+        {
+            @Override
+            public void onDateSet(DatePicker datepicker, int selectedyear, int selectedmonth, int selectedday)
+            {
+                dateText.setText(new StringBuilder().append(selectedday).append("/").append(selectedmonth+1).append("/").append(selectedyear));
+            }
+        },year, month, day);
+
+        long maxMillis,minMillis ;
+        String minDate="01/05/"+year+" 00:00:00";
+        String maxDate="31/12/"+year+" 00:00:00";
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+        try {
+
+            Date date= sdf.parse(minDate);
+            minMillis = date.getTime();
+            date=sdf.parse(maxDate);
+            maxMillis= date.getTime();
+            mDatePicker.getDatePicker().setMinDate(minMillis);
+            mDatePicker.getDatePicker().setMaxDate(maxMillis);
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        finally {
+            mDatePicker.show();
         }
     }
 }

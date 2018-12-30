@@ -8,4 +8,10 @@
     <string name="DialogMes">Copying The Database And Gathering All Data.The Json File Will Be Ready In A While</string>
     <string name="ExportSucces">Successfully Exported .json File</string>
     <string name="ExportFailed">Export Failed, Please Try Again</string>
+    <string name="RadioTitle">Select All Dates or Specific Dates Range</string>
+    <string name="RadioAll">All Dates</string>
+    <string name="RadioSpecific">Dates Range</string>
+    <string name="DateFromText">Date From</string>
+    <string name="DateToText">Date To</string>
+
 </resources>
