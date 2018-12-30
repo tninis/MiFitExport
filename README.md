@@ -8,3 +8,5 @@ Works only on Rooted device.
 - [ ] Inlcude full Step and Sleep data
 - [ ] Make Json names more readable
 - [ ] Proper display of the date and times in json file to be more readable
+- [ ] Export data based on dates
+- [ ] Export data to excel format
